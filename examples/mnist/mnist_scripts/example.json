@@ -1,0 +1,9 @@
+{
+    "model_name": "mnist_cnn",
+    "frozen_graph_location": "../mnist_trained/frozen_mnist_graph.pb",
+    "input_tensor_name": "import/Placeholder:0",
+    "output_tensor_name":"import/fc2/yconv:0",
+    "l1_loss_threshold": 0.01,
+    "l2_loss_threshold": 0.01,
+    "input_dimension" : 784
+}

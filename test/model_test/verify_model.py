@@ -6,22 +6,23 @@ import json
 import os
 
 
-def calculate_output(frozen_graph_filename, select_device, input_example, input_tensor_name, output_tensor_name):
+def calculate_output(param_dict, select_device, input_example):
     """Calculate the output of the imported frozen graph given the input.
 
     Load the graph def from frozen_graph_file on selected device, then get the tensors based on the input and output name from the graph,
     then feed the input_example to the graph and retrieves the output vector.
 
     Args:
-    frozen_graph_filename: The location of the frozen graph file. 
+    param_dict: The dictionary contains all the user-input data in the json file.
     select_device: "NGRAPH" or "CPU".
-        input_example: Random generated input or actual image.
-        input_tensor_name: Input tensor name in the frozen graph. 
-        output_tensor_name: Output tensor name in the frozen graph.
+    input_example: Random generated input or actual image.
 
     Returns:
         The output vector obtained from running the input_example through the graph.
     """
+    frozen_graph_filename = param_dict["frozen_graph_location"]
+    input_tensor_name = param_dict["input_tensor_name"]
+    output_tensor_name = param_dict["output_tensor_name"]
 
     with tf.gfile.GFile(frozen_graph_filename, "rb") as f:
         graph_def = tf.GraphDef()
@@ -36,7 +37,7 @@ def calculate_output(frozen_graph_filename, select_device, input_example, input_
 
     config = tf.ConfigProto(
         allow_soft_placement=True,
-        #log_device_placement=True,
+        # log_device_placement=True,
         inter_op_parallelism_threads=1
     )
 
@@ -86,14 +87,12 @@ def calculate_norm(ngraph_output, tf_output, desired_norm):
 def parse_json():
     """
         Parse the user input json file.
+
+        Returns:
+            A dictionary contains all the parsed parameters.
     """
-    global frozen_graph_location
-    global input_tensor_name
-    global output_tensor_name
-    global l1_norm_threshold
-    global l2_norm_threshold
-    global inf_norm_threshold
-    global input_dimension
+
+    param_dict = {}
 
     with open(os.path.abspath(args.json_file)) as f:
         parsed_json = json.load(f)
@@ -105,30 +104,43 @@ def parse_json():
         inf_norm_threshold = parsed_json['inf_norm_threshold']
         input_dimension = parsed_json['input_dimension']
 
+        param_dict["frozen_graph_location"] = frozen_graph_location
+        param_dict["input_tensor_name"] = input_tensor_name
+        param_dict["output_tensor_name"] = output_tensor_name
+        param_dict["l1_norm_threshold"] = l1_norm_threshold
+        param_dict["l2_norm_threshold"] = l2_norm_threshold
+        param_dict["inf_norm_threshold"] = inf_norm_threshold
+        param_dict["input_dimension"] = input_dimension
+
+        return param_dict
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--json_file", default="./example.json",
+    parser.add_argument("--json_file", default="./mnist_cnn.json",
                         type=str, help="Model details in json format")
     args = parser.parse_args()
 
-    parse_json()
+    parameters = parse_json()
 
     # Generate random input based on input_dimension
     np.random.seed(100)
+    input_dimension = parameters["input_dimension"]
     random_input = np.random.rand(1, input_dimension)
 
     # Run the model on ngraph
-    result_ngraph = calculate_output(frozen_graph_location, "NGRAPH",
-                                     random_input, input_tensor_name, output_tensor_name)
+    result_ngraph = calculate_output(parameters, "NGRAPH", random_input)
 
     # Run the model on tensorflow
-    result_tf_graph = calculate_output(frozen_graph_location, "CPU",
-                                       random_input, input_tensor_name, output_tensor_name)
+    result_tf_graph = calculate_output(parameters, "CPU", random_input)
 
-    l1_norm = calculate_norm(result_ngraph, result_tf_graph,'l1_norm')
-    l2_norm = calculate_norm(result_ngraph, result_tf_graph,'l2_norm')
-    inf_norm = calculate_norm(result_ngraph, result_tf_graph,'inf_norm')
+    l1_norm = calculate_norm(result_ngraph, result_tf_graph, 'l1_norm')
+    l2_norm = calculate_norm(result_ngraph, result_tf_graph, 'l2_norm')
+    inf_norm = calculate_norm(result_ngraph, result_tf_graph, 'inf_norm')
+
+    l1_norm_threshold = parameters["l1_norm_threshold"]
+    l2_norm_threshold = parameters["l2_norm_threshold"]
+    inf_norm_threshold = parameters["inf_norm_threshold"]
 
     if l1_norm > l1_norm_threshold:
         print ("The L1 norm %f is greater than the threshold %f " %
@@ -147,4 +159,3 @@ if __name__ == '__main__':
                (inf_norm, inf_norm_threshold))
     else:
         print ("inf norm test passed")
-    

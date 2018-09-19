@@ -450,7 +450,7 @@ TEST(MathOps, Exp2D) {
 
 TEST(MathOps, Abs1d) {
   Scope root = Scope::NewRootScope();
-  int dim1 = 1;
+  int dim1 = 4;
   Tensor A(DT_FLOAT, TensorShape({dim1}));
 
   AssignInputValuesRandom(A);
@@ -485,6 +485,49 @@ TEST(MathOps, Abs2d) {
                         sess_run_fetchoutputs);
   opexecuter.RunTest();
 }
+
+TEST(MathOps, Floor1d) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 3;
+  Tensor A(DT_FLOAT, TensorShape({dim1}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Floor(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Floor", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
 }
+
+TEST(MathOps, Floor2d) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 3;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1,dim2}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Floor(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Floor", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+
+} // namespace testing
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

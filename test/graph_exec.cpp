@@ -153,7 +153,7 @@ TEST(graph_exec, sess_axpy) {
   std::vector<Tensor> outputs;
 
   for (int i = 0; i < 1000000000; i++){
-    //cout << i << "\n";
+    cout << i << "\n";
     (session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &outputs));
   }
   DeactivateNGraph();

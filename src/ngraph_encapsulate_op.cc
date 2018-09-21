@@ -269,7 +269,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
     // Allocate tensors for arguments.
     vector<shared_ptr<ng::runtime::TensorView>> ng_inputs;
-
+    cout << "XXXXXXX: m_ng_function_input_cache_map.size()" << m_ng_function_input_cache_map.size() << "\n";
     std::vector<std::pair<void*, std::shared_ptr<ng::runtime::TensorView>>>&
         input_caches = m_ng_function_input_cache_map[ng_function];
     input_caches.resize(input_shapes.size());

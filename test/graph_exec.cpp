@@ -61,10 +61,12 @@ TEST(graph_exec, axpy) {
   std::vector<const Tensor*> static_input_map(2, nullptr);
 
   shared_ptr<ng::Function> ng_function;
-  for (int i = 0; i < 10000; i++)
+  for (int i = 0; i < 1000000000; i++){
+  cout << i << "\n";
   ASSERT_EQ(Status::OK(),
             ngraph_bridge::Builder::TranslateGraph(inputs, static_input_map,
                                                    &input_graph, ng_function));
+  }
 
   // Create the nGraph backend
   auto backend = ng::runtime::Backend::create("CPU");

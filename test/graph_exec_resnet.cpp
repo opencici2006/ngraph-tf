@@ -61,7 +61,6 @@ TEST(graph_exec, resnet) {
   std::vector<TensorShape> inputs = {x.shape()};
   std::vector<const Tensor*> static_input_map(1, nullptr);
 
-  
   shared_ptr<ng::Function> ng_function;
   ASSERT_EQ(Status::OK(),
             ngraph_bridge::Builder::TranslateGraph(inputs, static_input_map,

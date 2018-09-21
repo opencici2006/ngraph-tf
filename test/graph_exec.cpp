@@ -61,6 +61,7 @@ TEST(graph_exec, axpy) {
   std::vector<const Tensor*> static_input_map(2, nullptr);
 
   shared_ptr<ng::Function> ng_function;
+  for (int i = 0; i < 10000; i++)
   ASSERT_EQ(Status::OK(),
             ngraph_bridge::Builder::TranslateGraph(inputs, static_input_map,
                                                    &input_graph, ng_function));

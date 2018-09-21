@@ -31,6 +31,7 @@ x = graph.get_tensor_by_name('prefix/module/hub_input/images:0')
 #y = graph.get_tensor_by_name('prefix/module/resnet_v2_50/block1/unit_1/bottleneck_v2/conv1/Relu:0') #<- leaks
 #y = graph.get_tensor_by_name('prefix/module/resnet_v2_50/pool1/MaxPool:0') #<- leaks
 y = graph.get_tensor_by_name('prefix/module/hub_input/Sub:0')  #<-leaks
+#y = graph.get_tensor_by_name('prefix/module/hub_input/Mul:0')  #<- does not leak, since cluster is busted in deassign
 
 with tf.Session(graph=graph) as sess:
     for i in range(10000):

@@ -17,6 +17,7 @@
 
 #include "ngraph_builder.h"
 #include "ngraph_utils.h"
+#include "test_utilities.h"
 
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
@@ -24,6 +25,14 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
+
+#include "tensorflow/core/framework/tensor_types.h"
+#include "tensorflow/core/graph/default_device.h"
+
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/public/session.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -108,6 +117,47 @@ TEST(graph_exec, axpy) {
   }
   // Add the validation logic
   // TODO
+}
+
+TEST(graph_exec, sess_axpy) {
+  GraphDef gdef;
+  // auto status = ReadTextProto(Env::Default(), "test_py.pbtxt",
+  // &gdef);
+  auto status = ReadTextProto(Env::Default(), "../../test/test_axpy_const.pbtxt", &gdef);
+  ASSERT_TRUE(status == Status::OK()) << "Can't read protobuf graph";
+
+  // graph::SetDefaultDevice("/device:NGRAPH:0", &gdef);
+  ActivateNGraph();
+  SessionOptions options;
+  ConfigProto& config = options.config;
+  config.set_allow_soft_placement(true);
+  std::unique_ptr<Session> session(NewSession(options));
+
+  (session->Create(gdef));
+
+  // Create the inputs for this graph
+  Tensor x(DT_FLOAT, TensorShape({2, 3}));
+  auto x_flat = x.flat<float>();
+  for (int i = 0; i < x_flat.size(); i++) {
+    x_flat.data()[i] = 1.0;
+  }
+
+  Tensor y(DT_FLOAT, TensorShape({2, 3}));
+  auto y_flat = y.flat<float>();
+  for (int i = 0; i < y_flat.size(); i++) {
+    y_flat.data()[i] = 1.0;
+  }
+
+  std::vector<Tensor> outputs;
+
+  for (int i = 0; i < 1000000000; i++){
+    //cout << i << "\n";
+    (session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &outputs));
+  }
+  DeactivateNGraph();
+
+  ASSERT_EQ(outputs.size(), 2);
+  
 }
 
 }  // namespace ngraph_bridge

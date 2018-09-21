@@ -22,17 +22,14 @@ def load_graph(frozen_graph_filename):
 graph = load_graph('../test/test_axpy_const.pbtxt')
 
 for op in graph.get_operations():
-    #print(op.name)
-    if op.type=='Placeholder':
-        print(op.name)
-    if op.type=='Softmax':
-        print(op.name)
+    print(op.name, op.type)
 
 x = graph.get_tensor_by_name('prefix/x:0')
 y = graph.get_tensor_by_name('prefix/y:0')
 a = graph.get_tensor_by_name('prefix/add:0')
+m = graph.get_tensor_by_name('prefix/mul:0')
 
 with tf.Session(graph=graph) as sess:
     for i in range(100000000):
-        y_out = sess.run(a, feed_dict={x: np.random.rand(2,3), y: np.random.rand(2,3)})
-        print(i)
+        y_out = sess.run([a, m], feed_dict={x: np.random.rand(2,3), y: np.random.rand(2,3)})
+        #print(i)

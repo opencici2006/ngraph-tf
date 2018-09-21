@@ -20,15 +20,19 @@ def load_graph(frozen_graph_filename):
 graph = load_graph('./tmp/frozen_model.pb')
 
 for op in graph.get_operations():
+    #print(op.name)
     if op.type=='Placeholder':
         print(op.name)
     if op.type=='Softmax':
         print(op.name)
 
 x = graph.get_tensor_by_name('prefix/module/hub_input/images:0')
-y = graph.get_tensor_by_name('prefix/module/resnet_v2_50/predictions/Softmax:0')
+#y = graph.get_tensor_by_name('prefix/module/resnet_v2_50/predictions/Softmax:0') #<- leaks
+#y = graph.get_tensor_by_name('prefix/module/resnet_v2_50/block1/unit_1/bottleneck_v2/conv1/Relu:0') #<- leaks
+#y = graph.get_tensor_by_name('prefix/module/resnet_v2_50/pool1/MaxPool:0') #<- leaks
+y = graph.get_tensor_by_name('prefix/module/hub_input/Sub:0')  #<-leaks
 
 with tf.Session(graph=graph) as sess:
     for i in range(10000):
-        y_out = sess.run(y, feed_dict={x: np.random.rand(128,224,224,3)})
+        y_out = sess.run(y, feed_dict={x: np.random.rand(32,224,224,3)})
         print(i)

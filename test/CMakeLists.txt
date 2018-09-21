@@ -56,6 +56,7 @@ set(SRC
     test_nn_ops.cpp
     test_array_ops.cpp
     opexecuter.cpp
+    graph_exec_resnet.cpp
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")

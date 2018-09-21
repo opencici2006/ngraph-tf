@@ -263,7 +263,8 @@ class NGraphEncapsulateOp : public OpKernel {
     // Compile the graph using nGraph.
     //
     // TODO(amprocte): Investigate performance of the compilation cache.
-    if (it == m_ng_functions.end()) {
+    //it == m_ng_functions.end()
+    if (false) {
       NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
       OP_REQUIRES_OK(
           ctx, Builder::TranslateGraph(input_shapes, static_input_map, &m_graph,

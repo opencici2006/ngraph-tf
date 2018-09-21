@@ -270,24 +270,6 @@ class NGraphEncapsulateOp : public OpKernel {
           ctx, Builder::TranslateGraph(input_shapes, static_input_map, &m_graph,
                                        ng_function));
 
-      // Serialize to nGraph if needed
-      if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-        std::string file_name =
-            "tf_function_" + ctx->op_kernel().name() + ".json";
-        NGRAPH_VLOG(0) << "Serializing graph to: " << file_name;
-        std::string js = ngraph::serialize(ng_function, 4);
-        std::ofstream f;
-        f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-        try {
-          f.open(file_name);
-          f << js;
-          f.close();
-        } catch (std::ofstream::failure& e) {
-          std::cerr << "Exception opening/closing file " << file_name << endl;
-          std::cerr << e.what() << endl;
-        }
-      }
-
       m_ng_functions[signature] = ng_function;
     } else {
       ng_function = it->second;

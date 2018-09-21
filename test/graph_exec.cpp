@@ -75,7 +75,7 @@ TEST(graph_exec, axpy) {
   ASSERT_EQ(Status::OK(),
             ngraph_bridge::Builder::TranslateGraph(inputs, static_input_map,
                                                    &input_graph, ng_function));
-  }
+
 
   // Create the nGraph backend
   auto backend = ng::runtime::Backend::create("CPU");
@@ -110,11 +110,13 @@ TEST(graph_exec, axpy) {
   // Execute the nGraph function.
   cout << "Calling nGraph function\n";
   backend->call(ng_function, outputs, {t_x, t_y});
-
+  }
+  /*
   for (auto i = 0; i < ng_function->get_output_size(); i++) {
     DumpNGTensor(cout, ng_function->get_output_op(i)->get_name(), outputs[i]);
     cout << endl;
   }
+  */
   // Add the validation logic
   // TODO
 }

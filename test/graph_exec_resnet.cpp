@@ -37,7 +37,7 @@ TEST(graph_exec, resnet) {
   // auto status = ReadTextProto(Env::Default(), "test_py.pbtxt",
   // &gdef);
   auto status =
-      ReadTextProto(Env::Default(), "resnet.pbtxt", &gdef);
+      ReadBinaryProto(Env::Default(), "../../examples/tmp/frozen_model.pb", &gdef);
   // ReadTextProto(Env::Default(), "test_launch_op.pbtxt", &gdef);
   ASSERT_TRUE(status == Status::OK()) << "Can't read protobuf graph";
 
@@ -51,16 +51,17 @@ TEST(graph_exec, resnet) {
 
   ASSERT_EQ(ConvertGraphDefToGraph(opts, gdef, &input_graph), Status::OK());
   // Create the inputs for this graph
-  Tensor x(DT_FLOAT, TensorShape({2, 3}));
-  Tensor y(DT_FLOAT, TensorShape({2, 3}));
 
-  std::vector<TensorShape> inputs;
-  inputs.push_back(x.shape());
-  inputs.push_back(y.shape());
+  int bs = 128;
+  int ht = 224;
+  int wd = 224;
+  int ch = 3;
 
-  std::vector<const Tensor*> static_input_map(2, nullptr);
+  Tensor x(DT_FLOAT, TensorShape({bs, ht, wd, ch}));
+  std::vector<TensorShape> inputs = {x.shape()};
+  std::vector<const Tensor*> static_input_map(1, nullptr);
 
-  /*
+  
   shared_ptr<ng::Function> ng_function;
   ASSERT_EQ(Status::OK(),
             ngraph_bridge::Builder::TranslateGraph(inputs, static_input_map,
@@ -75,17 +76,9 @@ TEST(graph_exec, resnet) {
     ng_shape_x[i] = x.shape().dim_size(i);
   }
 
-  ng::Shape ng_shape_y(y.shape().dims());
-  for (int i = 0; i < y.shape().dims(); ++i) {
-    ng_shape_y[i] = y.shape().dim_size(i);
-  }
-
   auto t_x = backend->create_tensor(ng::element::f32, ng_shape_x);
-  float v_x[2][3] = {{1, 1, 1}, {1, 1, 1}};
-  t_x->write(&v_x, 0, sizeof(v_x));
-
-  auto t_y = backend->create_tensor(ng::element::f32, ng_shape_y);
-  t_y->write(&v_x, 0, sizeof(v_x));
+  float* v_x = (float*)calloc(bs*ht*wd*ch, sizeof(float));
+  t_x->write(&v_x, 0, bs*ht*wd*ch);
 
   // Allocate tensor for the result(s)
   vector<shared_ptr<ng::runtime::TensorView>> outputs;
@@ -98,7 +91,7 @@ TEST(graph_exec, resnet) {
 
   // Execute the nGraph function.
   cout << "Calling nGraph function\n";
-  backend->call(ng_function, outputs, {t_x, t_y});
+  backend->call(ng_function, outputs, {t_x});
 
   for (auto i = 0; i < ng_function->get_output_size(); i++) {
     DumpNGTensor(cout, ng_function->get_output_op(i)->get_name(), outputs[i]);
@@ -106,7 +99,9 @@ TEST(graph_exec, resnet) {
   }
   // Add the validation logic
   // TODO
-  */
+
+  free(v_x);
+  
 }
 
 }  // namespace ngraph_bridge

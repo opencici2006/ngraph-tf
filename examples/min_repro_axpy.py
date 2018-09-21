@@ -19,7 +19,7 @@ def load_graph(frozen_graph_filename):
     return graph
 
 
-graph = load_graph('../test/test_axpy_launchop.pbtxt')
+graph = load_graph('../test/test_axpy_const.pbtxt')
 
 for op in graph.get_operations():
     #print(op.name)

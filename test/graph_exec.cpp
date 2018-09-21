@@ -37,7 +37,7 @@ TEST(graph_exec, axpy) {
   // auto status = ReadTextProto(Env::Default(), "test_py.pbtxt",
   // &gdef);
   auto status =
-      ReadTextProto(Env::Default(), "test_axpy_launchop.pbtxt", &gdef);
+      ReadTextProto(Env::Default(), "../../test/test_axpy_const.pbtxt", &gdef);
   // ReadTextProto(Env::Default(), "test_launch_op.pbtxt", &gdef);
   ASSERT_TRUE(status == Status::OK()) << "Can't read protobuf graph";
 

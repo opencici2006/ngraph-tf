@@ -226,54 +226,28 @@ class NGraphEncapsulateOp : public OpKernel {
 
     // Get the inputs
     std::vector<TensorShape> input_shapes;
-    std::stringstream signature_ss;
     for (int i = 0; i < ctx->num_inputs(); i++) {
       const Tensor& input_tensor = ctx->input(i);
       input_shapes.push_back(input_tensor.shape());
-      for (const auto& x : input_tensor.shape()) {
-        signature_ss << x.size << ",";
-      }
-      signature_ss << ";";
     }
-
-    signature_ss << "/";
 
     std::vector<const Tensor*> static_input_map(ctx->num_inputs());
     for (int i = 0; i < ctx->num_inputs(); i++) {
       const Tensor& input_tensor = ctx->input(i);
       if (m_input_is_static[i]) {
         static_input_map[i] = &input_tensor;
-        OP_REQUIRES_OK(ctx, TensorToStream(signature_ss, input_tensor));
-        signature_ss << ";";
       }
     }
 
     std::shared_ptr<ngraph::Function> ng_function;
-    std::string signature = signature_ss.str();
-
-    if (NGRAPH_VLOG_IS_ON(5)) {
-      NGRAPH_VLOG(5) << "Computed signature: " << signature;
-    }
-
-    auto it = m_ng_functions.find(signature);
 
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
                    << m_ngraph_cluster;
 
-    // Compile the graph using nGraph.
-    //
-    // TODO(amprocte): Investigate performance of the compilation cache.
-    //it == m_ng_functions.end()
-    if (true) {
-      NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
-      OP_REQUIRES_OK(
-          ctx, Builder::TranslateGraph(input_shapes, static_input_map, &m_graph,
-                                       ng_function));
-
-      m_ng_functions[signature] = ng_function;
-    } else {
-      ng_function = it->second;
-    }
+    NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
+    OP_REQUIRES_OK(
+        ctx, Builder::TranslateGraph(input_shapes, static_input_map, &m_graph,
+                                      ng_function));
 
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
                    << m_ngraph_cluster;

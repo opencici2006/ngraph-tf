@@ -36,8 +36,8 @@ TEST(graph_exec, resnet) {
   GraphDef gdef;
   // auto status = ReadTextProto(Env::Default(), "test_py.pbtxt",
   // &gdef);
-  auto status =
-      ReadBinaryProto(Env::Default(), "../../examples/tmp/frozen_model.pb", &gdef);
+  auto status = ReadBinaryProto(Env::Default(),
+                                "../../examples/tmp/frozen_model.pb", &gdef);
   // ReadTextProto(Env::Default(), "test_launch_op.pbtxt", &gdef);
   ASSERT_TRUE(status == Status::OK()) << "Can't read protobuf graph";
 
@@ -76,8 +76,8 @@ TEST(graph_exec, resnet) {
   }
 
   auto t_x = backend->create_tensor(ng::element::f32, ng_shape_x);
-  float* v_x = (float*)calloc(bs*ht*wd*ch, sizeof(float));
-  t_x->write(&v_x, 0, bs*ht*wd*ch);
+  float* v_x = (float*)calloc(bs * ht * wd * ch, sizeof(float));
+  t_x->write(&v_x, 0, bs * ht * wd * ch);
 
   // Allocate tensor for the result(s)
   vector<shared_ptr<ng::runtime::TensorView>> outputs;
@@ -100,7 +100,6 @@ TEST(graph_exec, resnet) {
   // TODO
 
   free(v_x);
-  
 }
 
 }  // namespace ngraph_bridge

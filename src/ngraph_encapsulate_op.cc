@@ -44,7 +44,7 @@ namespace tensorflow {
 
 // For each I/O tensor, cache TF's data ptr and nGraph's TensorView
 using NgFunctionIOCache = std::unordered_map<
-    std::shared_ptr<ngraph::Function>,
+    std::string,
     std::vector<std::pair<void*, shared_ptr<ng::runtime::TensorView>>>>;
 
 namespace ngraph_bridge {
@@ -226,28 +226,40 @@ class NGraphEncapsulateOp : public OpKernel {
 
     // Get the inputs
     std::vector<TensorShape> input_shapes;
+    std::stringstream signature_ss;
     for (int i = 0; i < ctx->num_inputs(); i++) {
       const Tensor& input_tensor = ctx->input(i);
       input_shapes.push_back(input_tensor.shape());
+      for (const auto& x : input_tensor.shape()) {
+        signature_ss << x.size << ",";
+      }
+      signature_ss << ";";
     }
+    signature_ss << "/";
 
     std::vector<const Tensor*> static_input_map(ctx->num_inputs());
     for (int i = 0; i < ctx->num_inputs(); i++) {
       const Tensor& input_tensor = ctx->input(i);
       if (m_input_is_static[i]) {
         static_input_map[i] = &input_tensor;
+        OP_REQUIRES_OK(ctx, TensorToStream(signature_ss, input_tensor));
+        signature_ss << ";";
       }
     }
 
     std::shared_ptr<ngraph::Function> ng_function;
+    std::string signature = signature_ss.str();
+    if (NGRAPH_VLOG_IS_ON(5)) {
+      NGRAPH_VLOG(5) << "Computed signature: " << signature;
+    }
+    auto it = m_ng_functions.find(signature);
 
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
                    << m_ngraph_cluster;
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
-    OP_REQUIRES_OK(
-        ctx, Builder::TranslateGraph(input_shapes, static_input_map, &m_graph,
-                                      ng_function));
+    OP_REQUIRES_OK(ctx, Builder::TranslateGraph(input_shapes, static_input_map,
+                                                &m_graph, ng_function));
 
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
                    << m_ngraph_cluster;
@@ -269,10 +281,13 @@ class NGraphEncapsulateOp : public OpKernel {
 
     // Allocate tensors for arguments.
     vector<shared_ptr<ng::runtime::TensorView>> ng_inputs;
-    cout << "XXXXXXX: m_ng_function_input_cache_map.size()" << m_ng_function_input_cache_map.size() << "\n";
+    cout << "XXXXXXX: m_ng_function_input_cache_map.size()"
+         << m_ng_function_input_cache_map.size() << "\n";
     std::vector<std::pair<void*, std::shared_ptr<ng::runtime::TensorView>>>&
-        input_caches = m_ng_function_input_cache_map[ng_function];
+        input_caches = m_ng_function_input_cache_map[signature];
     input_caches.resize(input_shapes.size());
+    cout << input_caches.size() << "\n";
+    cout << "Ref count" << ng_function.use_count() << "\n";
 
     for (int i = 0; i < input_shapes.size(); i++) {
       ng::Shape ng_shape(input_shapes[i].dims());
@@ -348,7 +363,7 @@ class NGraphEncapsulateOp : public OpKernel {
     vector<shared_ptr<ng::runtime::TensorView>> ng_outputs;
 
     std::vector<std::pair<void*, std::shared_ptr<ng::runtime::TensorView>>>&
-        output_caches = m_ng_function_output_cache_map[ng_function];
+        output_caches = m_ng_function_output_cache_map[signature];
     output_caches.resize(ng_function->get_output_size());
 
     for (auto i = 0; i < ng_function->get_output_size(); i++) {

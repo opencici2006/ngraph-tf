@@ -2802,7 +2802,7 @@ Status Builder::TranslateGraph(
   // We will visit ops in topological order.
   //
   // ought to be `const Node*`, but GetReversePostOrder doesn't use `const`
-  //cout << "ENTERING TranslateGraph ---------- \n";
+  // cout << "ENTERING TranslateGraph ---------- \n";
   vector<Node*> ordered;
   GetReversePostOrder(*input_graph, &ordered);
 

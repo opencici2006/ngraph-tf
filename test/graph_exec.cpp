@@ -70,46 +70,45 @@ TEST(graph_exec, axpy) {
   std::vector<const Tensor*> static_input_map(2, nullptr);
 
   shared_ptr<ng::Function> ng_function;
-  for (int i = 0; i < 1000000000; i++){
-  cout << i << "\n";
-  ASSERT_EQ(Status::OK(),
-            ngraph_bridge::Builder::TranslateGraph(inputs, static_input_map,
-                                                   &input_graph, ng_function));
+  for (int i = 0; i < 1000000000; i++) {
+    cout << i << "\n";
+    ASSERT_EQ(Status::OK(),
+              ngraph_bridge::Builder::TranslateGraph(
+                  inputs, static_input_map, &input_graph, ng_function));
 
+    // Create the nGraph backend
+    auto backend = ng::runtime::Backend::create("CPU");
 
-  // Create the nGraph backend
-  auto backend = ng::runtime::Backend::create("CPU");
+    // Allocate tensors for arguments a, b, c
+    ng::Shape ng_shape_x(x.shape().dims());
+    for (int i = 0; i < x.shape().dims(); ++i) {
+      ng_shape_x[i] = x.shape().dim_size(i);
+    }
 
-  // Allocate tensors for arguments a, b, c
-  ng::Shape ng_shape_x(x.shape().dims());
-  for (int i = 0; i < x.shape().dims(); ++i) {
-    ng_shape_x[i] = x.shape().dim_size(i);
-  }
+    ng::Shape ng_shape_y(y.shape().dims());
+    for (int i = 0; i < y.shape().dims(); ++i) {
+      ng_shape_y[i] = y.shape().dim_size(i);
+    }
 
-  ng::Shape ng_shape_y(y.shape().dims());
-  for (int i = 0; i < y.shape().dims(); ++i) {
-    ng_shape_y[i] = y.shape().dim_size(i);
-  }
+    auto t_x = backend->create_tensor(ng::element::f32, ng_shape_x);
+    float v_x[2][3] = {{1, 1, 1}, {1, 1, 1}};
+    t_x->write(&v_x, 0, sizeof(v_x));
 
-  auto t_x = backend->create_tensor(ng::element::f32, ng_shape_x);
-  float v_x[2][3] = {{1, 1, 1}, {1, 1, 1}};
-  t_x->write(&v_x, 0, sizeof(v_x));
+    auto t_y = backend->create_tensor(ng::element::f32, ng_shape_y);
+    t_y->write(&v_x, 0, sizeof(v_x));
 
-  auto t_y = backend->create_tensor(ng::element::f32, ng_shape_y);
-  t_y->write(&v_x, 0, sizeof(v_x));
+    // Allocate tensor for the result(s)
+    vector<shared_ptr<ng::runtime::TensorView>> outputs;
+    for (auto i = 0; i < ng_function->get_output_size(); i++) {
+      auto shape = ng_function->get_output_shape(i);
+      auto elem_type = ng_function->get_output_element_type(i);
+      auto t_result = backend->create_tensor(elem_type, shape);
+      outputs.push_back(t_result);
+    }
 
-  // Allocate tensor for the result(s)
-  vector<shared_ptr<ng::runtime::TensorView>> outputs;
-  for (auto i = 0; i < ng_function->get_output_size(); i++) {
-    auto shape = ng_function->get_output_shape(i);
-    auto elem_type = ng_function->get_output_element_type(i);
-    auto t_result = backend->create_tensor(elem_type, shape);
-    outputs.push_back(t_result);
-  }
-
-  // Execute the nGraph function.
-  cout << "Calling nGraph function\n";
-  backend->call(ng_function, outputs, {t_x, t_y});
+    // Execute the nGraph function.
+    cout << "Calling nGraph function\n";
+    backend->call(ng_function, outputs, {t_x, t_y});
   }
   /*
   for (auto i = 0; i < ng_function->get_output_size(); i++) {
@@ -125,7 +124,8 @@ TEST(graph_exec, sess_axpy) {
   GraphDef gdef;
   // auto status = ReadTextProto(Env::Default(), "test_py.pbtxt",
   // &gdef);
-  auto status = ReadTextProto(Env::Default(), "../../test/test_axpy_const.pbtxt", &gdef);
+  auto status =
+      ReadTextProto(Env::Default(), "../../test/test_axpy_const.pbtxt", &gdef);
   ASSERT_TRUE(status == Status::OK()) << "Can't read protobuf graph";
 
   // graph::SetDefaultDevice("/device:NGRAPH:0", &gdef);
@@ -152,14 +152,13 @@ TEST(graph_exec, sess_axpy) {
 
   std::vector<Tensor> outputs;
 
-  for (int i = 0; i < 1000000000; i++){
+  for (int i = 0; i < 1000000000; i++) {
     cout << i << "\n";
     (session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &outputs));
   }
   DeactivateNGraph();
 
   ASSERT_EQ(outputs.size(), 2);
-  
 }
 
 }  // namespace ngraph_bridge

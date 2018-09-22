@@ -18,12 +18,17 @@ from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input, d
 import numpy as np, os
 from tensorflow.python.tools import freeze_graph
 import tensorflow.keras.backend as K
+
 #import ngraph
 
 # A simple script to run inference and training on resnet 50
 
+
 #https://stackoverflow.com/questions/45466020/how-to-export-keras-h5-to-tensorflow-pb
-def freeze_session(session, keep_var_names=None, output_names=None, clear_devices=True):
+def freeze_session(session,
+                   keep_var_names=None,
+                   output_names=None,
+                   clear_devices=True):
     """
     Freezes the state of a session into a pruned computation graph.
 
@@ -41,14 +46,16 @@ def freeze_session(session, keep_var_names=None, output_names=None, clear_device
     from tensorflow.python.framework.graph_util import convert_variables_to_constants
     graph = session.graph
     with graph.as_default():
-        freeze_var_names = list(set(v.op.name for v in tf.global_variables()).difference(keep_var_names or []))
+        freeze_var_names = list(
+            set(v.op.name for v in tf.global_variables()).difference(
+                keep_var_names or []))
         output_names = output_names or []
         output_names += [v.op.name for v in tf.global_variables()]
         input_graph_def = graph.as_graph_def()
         if clear_devices:
             for node in input_graph_def.node:
                 node.device = ""
-                
+
         # https://github.com/onnx/tensorflow-onnx/issues/77
         # fix nodes
         for node in input_graph_def.node:
@@ -64,9 +71,10 @@ def freeze_session(session, keep_var_names=None, output_names=None, clear_device
                 node.op = 'Add'
                 if 'use_locking' in node.attr: del node.attr['use_locking']
 
-        frozen_graph = convert_variables_to_constants(session, input_graph_def,
-                                                      output_names, freeze_var_names)
+        frozen_graph = convert_variables_to_constants(
+            session, input_graph_def, output_names, freeze_var_names)
         return frozen_graph
+
 
 model = ResNet50(weights='imagenet')
 
@@ -76,9 +84,16 @@ flag = False
 for i in range(1000):
     preds = model.predict(preprocess_input(img))
     if not flag:
-        import pdb; pdb.set_trace()
-        frozen_graph = freeze_session(K.get_session(), output_names=[out.op.name for out in model.outputs])
-        tf.train.write_graph(frozen_graph, "/localdisk/sarkars/workspace1/tf_ngtf_1/ngraph-tf/examples", "keras_resnet_scrubbed.pbtxt", as_text=True)
+        import pdb
+        pdb.set_trace()
+        frozen_graph = freeze_session(
+            K.get_session(),
+            output_names=[out.op.name for out in model.outputs])
+        tf.train.write_graph(
+            frozen_graph,
+            "/localdisk/sarkars/workspace1/tf_ngtf_1/ngraph-tf/examples",
+            "keras_resnet_scrubbed.pbtxt",
+            as_text=True)
         #tf.train.write_graph(tf.keras.backend.get_session().graph, '/localdisk/sarkars/workspace1/tf_ngtf_1/ngraph-tf/examples', 'keras_resnet.pbtxt')
         flag = True
         print("DONE")
@@ -87,7 +102,6 @@ print('Predicted:', decode_predictions(preds, top=3)[0])
 #for i in range(1000):
 #    preds = model.fit(preprocess_input(img), np.zeros((batch_size, 1000), dtype='float32'))
 #print('Ran a train round')
-
 
 #grep "Placeholder" -B 3 keras_resnet_scrubbed.pbtxt
 #this tells us: input_1

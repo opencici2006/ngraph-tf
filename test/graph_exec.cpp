@@ -59,6 +59,8 @@ TEST(graph_exec, axpy) {
   opts.allow_internal_ops = true;
 
   ASSERT_EQ(ConvertGraphDefToGraph(opts, gdef, &input_graph), Status::OK());
+
+  for (int i = 0; i < 1000000000; i++) {
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
   Tensor y(DT_FLOAT, TensorShape({2, 3}));
@@ -70,7 +72,7 @@ TEST(graph_exec, axpy) {
   std::vector<const Tensor*> static_input_map(2, nullptr);
 
   shared_ptr<ng::Function> ng_function;
-  for (int i = 0; i < 1000000000; i++) {
+
     cout << i << "\n";
     ASSERT_EQ(Status::OK(),
               ngraph_bridge::Builder::TranslateGraph(

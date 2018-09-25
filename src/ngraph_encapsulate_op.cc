@@ -257,9 +257,19 @@ class NGraphEncapsulateOp : public OpKernel {
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
                    << m_ngraph_cluster;
 
-    NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
-    OP_REQUIRES_OK(ctx, Builder::TranslateGraph(input_shapes, static_input_map,
+    if (it == m_ng_functions.end()) {
+      NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
+      OP_REQUIRES_OK(ctx, Builder::TranslateGraph(input_shapes, static_input_map,
                                                 &m_graph, ng_function));
+      m_ng_functions[signature] = ng_function;
+    } else {
+      OP_REQUIRES_OK(ctx, Builder::TranslateGraph(input_shapes, static_input_map,
+                                                &m_graph, ng_function));
+      //ng_function = it->second;
+
+      // With ng_function = it->second; present, no leak
+      // With ng_function = it->second; commented out, leaks
+    }
 
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
                    << m_ngraph_cluster;
@@ -287,7 +297,6 @@ class NGraphEncapsulateOp : public OpKernel {
         input_caches = m_ng_function_input_cache_map[signature];
     input_caches.resize(input_shapes.size());
     cout << input_caches.size() << "\n";
-    cout << "Ref count" << ng_function.use_count() << "\n";
 
     for (int i = 0; i < input_shapes.size(); i++) {
       ng::Shape ng_shape(input_shapes[i].dims());
@@ -396,7 +405,6 @@ class NGraphEncapsulateOp : public OpKernel {
 
       void* current_dst_ptr = DMAHelper::base(output_tensor);
       std::shared_ptr<ng::runtime::TensorView> current_tv;
-
       if (s_ng_backend_name == "CPU") {
         // We need to check last_tv != nullptr, since there are cases where at
         // the first call to the ng_function, both the current_dst_ptr (when the
@@ -432,7 +440,9 @@ class NGraphEncapsulateOp : public OpKernel {
           << "NGraphEncapsulateOp::Compute call starting for cluster "
           << m_ngraph_cluster;
       try {
+        cout << "Ref count 2.1: " << ng_function.use_count() << "\n";
         s_ng_backend->call(ng_function, ng_outputs, ng_inputs);
+        cout << "Ref count 2.2: " << ng_function.use_count() << "\n";
       } catch (const std::exception& exp) {
         OP_REQUIRES(ctx, false,
                     errors::Internal(

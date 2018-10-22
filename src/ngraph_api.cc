@@ -1,6 +1,5 @@
-#include "ngraph/runtime/backend.hpp"
-
 #include "ngraph_api.h"
+#include "ngraph_backend_manager.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -50,7 +49,7 @@ vector<string> ListBackends() {
 }
 tensorflow::Status SetBackend(const string& type) {
   try {
-    ngraph::runtime::Backend::create(type);
+    BackendManager::Instance()->SetBackendConfig(type);
   } catch (const runtime_error& e) {
     return tensorflow::errors::Unavailable("Backend unavailable: ", type,
                                            " Reason: ", e.what());

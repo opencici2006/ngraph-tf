@@ -2404,19 +2404,15 @@ static Status TranslateQuantizedMaxPoolOp(const Node* op, const std::vector<cons
   auto ng_max = std::make_shared<ng::op::Constant>(ng::element::f32,
                                                    ng::Shape({1}), max_val);
    std::shared_ptr<ng::Node> ng_quant_maxpool =
-      make_shared<ng::builder::ScaledQuantizedMaxPool>(ng_input, ng_kernel_shape,
+      ng::builder::ScaledQuantizedMaxPool(ng_input, ng_kernel_shape,
                                             ng_strides, ng_padding_below,
                                             ng_padding_above, static_pointer_cast<ng::Node>(ng_min), static_pointer_cast<ng::Node>(ng_max));
   std::shared_ptr<ng::Node> ng_quant_maxpool_out0 =
       make_shared<ng::op::GetOutputElement>(ng_quant_maxpool, 0);
   BatchToTensorflow(is_nhwc, ng_quant_maxpool_out0);
-  std::shared_ptr<ng::Node> ng_quant_maxpool_out1 =
-      make_shared<ng::op::GetOutputElement>(ng_quant_maxpool, 1);
-  std::shared_ptr<ng::Node> ng_quant_maxpool_out2 =
-      make_shared<ng::op::GetOutputElement>(ng_quant_maxpool, 2);
   SaveNgOp(ng_op_map, op->name(), ng_quant_maxpool_out0);
-  SaveNgOp(ng_op_map, op->name(), ng_quant_maxpool_out1);
-  SaveNgOp(ng_op_map, op->name(), ng_quant_maxpool_out2);
+  SaveNgOp(ng_op_map, op->name(), ng_min);
+  SaveNgOp(ng_op_map, op->name(), ng_max);
   return Status::OK();
 }
 

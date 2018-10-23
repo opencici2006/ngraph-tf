@@ -2406,7 +2406,7 @@ static Status TranslateQuantizedMaxPoolOp(const Node* op, const std::vector<cons
    std::shared_ptr<ng::Node> ng_quant_maxpool =
       make_shared<ng::builder::ScaledQuantizedMaxPool>(ng_input, ng_kernel_shape,
                                             ng_strides, ng_padding_below,
-                                            ng_padding_above, dynamic_pointer_cast<ng::Node>(ng_min), dynamic_pointer_cast<ng::Node>(ng_max));
+                                            ng_padding_above, static_pointer_cast<ng::Node>(ng_min), static_pointer_cast<ng::Node>(ng_max));
   std::shared_ptr<ng::Node> ng_quant_maxpool_out0 =
       make_shared<ng::op::GetOutputElement>(ng_quant_maxpool, 0);
   BatchToTensorflow(is_nhwc, ng_quant_maxpool_out0);

@@ -4,7 +4,9 @@ import numpy as np
 import ngraph
 import json
 import os
-
+from google.protobuf import text_format
+from tensorflow.core.framework import graph_pb2
+import pdb
 
 def calculate_output(param_dict, select_device, input_example):
     """Calculate the output of the imported frozen graph given the input.
@@ -27,9 +29,18 @@ def calculate_output(param_dict, select_device, input_example):
         raise Exception("Input graph file '" + frozen_graph_filename +
                         "' does not exist!")
 
-    with tf.gfile.GFile(frozen_graph_filename, "rb") as f:
-        graph_def = tf.GraphDef()
-        graph_def.ParseFromString(f.read())
+    input_binary = frozen_graph_filename.split('.')[1] == 'pb'
+    graph_def = graph_pb2.GraphDef()
+    with open(frozen_graph_filename, "r") as f:
+        protobuf_str = f.read()
+        try:
+            if input_binary:
+                graph_def.ParseFromString(protobuf_str)
+            else:
+                text_format.Merge(protobuf_str, graph_def)
+        except:
+            raise Exception("Failed to read pb or pbtxt. input_binary is " +
+                            str(input_binary) + " maybe try flipping it?")
 
     if select_device == 'CPU':
         ngraph.disable()
@@ -38,6 +49,7 @@ def calculate_output(param_dict, select_device, input_example):
         if not ngraph.is_enabled():
             ngraph.enable()
 
+    #pdb.set_trace()
     with tf.Graph().as_default() as graph:
         tf.import_graph_def(graph_def)
         if len(output_tensor_name) == 0:
@@ -136,7 +148,8 @@ if __name__ == '__main__':
     # Matches the input tensors name with its required dimensions
     input_tensor_dim_map = {}
     for (dim, name) in zip(input_dimension, input_tensor_name):
-        random_input = np.random.random_sample([bs] + dim)
+        random_input = np.random.randint(255, size=[bs] + dim).astype('float32')
+        #random_input = np.random.random_sample([bs] + dim)
         input_tensor_dim_map[name] = random_input
 
     # Run the model on tensorflow
@@ -161,16 +174,34 @@ if __name__ == '__main__':
             print("The L1 norm %f is greater than the threshold %f for %s" %
                   (l1_norm, l1_norm_threshold, tname))
         else:
-            print("L1 norm test passed for ", tname)
+            print("L1 norm test passed for ", tname, ". Norm = ", l1_norm)
 
         if l2_norm > l2_norm_threshold:
             print("The L2 norm %f is greater than the threshold %f for %s" %
                   (l2_norm, l2_norm_threshold, tname))
         else:
-            print("L2 norm test passed for ", tname)
+            print("L2 norm test passed for ", tname, ". Norm = ", l2_norm)
 
         if inf_norm > inf_norm_threshold:
             print("The inf norm %f is greater than the threshold %f for %s" %
                   (inf_norm, inf_norm_threshold, tname))
         else:
-            print("inf norm test passed for ", tname)
+            print("inf norm test passed for ", tname, ". Norm = ", inf_norm)
+
+        print(tname, np.sum(result_ngraph), np.sum(result_tf_graph))
+        #pdb.set_trace()
+        #"import/model/fc2/fc2/BiasAdd:0"
+
+
+'''
+Note:
+model1:
+import/model/conv0/conv0/Relu6/Dequantize/QuantizeV2:0 ok,
+import/model/conv0/conv0/Relu6/Dequantize/Dequantize:0 not ok
+
+model2:
+"import/model/conv2/conv2/Conv2D_1:0", not ok
+before that, ok
+'''
+
+ 

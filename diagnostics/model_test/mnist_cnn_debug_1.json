@@ -2,7 +2,7 @@
     "model_name": "mnist_cnn",
     "frozen_graph_location": "/nfs/site/home/sarkars/quant_dequant_mnist_json/mnist_quantized_fully_trained.pbtxt",
     "input_tensor_name": ["import/inputs/image/placeholder:0"],
-    "output_tensor_name": ["import/inputs/image/placeholder/QuantizeV2:0", "import/inputs/image/placeholder/Dequantize:0", "import/model/conv0/conv0/Conv2D_1:0", "import/model/conv0/conv0/BatchNorm/BiasAdd:0", "import/model/conv0/conv0/Relu6/Dequantize/QuantizeV2:0", "import/model/conv0/conv0/Relu6/Dequantize/Dequantize:0", "import/model/conv1/conv1/Relu6:0", "import/fc1/weights/read/Dequantize:0", "import/model/fc2/fc2/BiasAdd:0"],
+    "output_tensor_name": ["import/model/conv0/conv0/Relu6/Dequantize/Dequantize:0", "import/model/conv0/conv0/Relu6/FixedQuantize/QuantizeAndDequantizeV2/input_max:0", "import/model/conv0/conv0/Relu6/FixedQuantize/mul_2:0", "import/model/conv0/conv0/Relu6/Dequantize/QuantizeV2:0"],
     "l1_norm_threshold": 0.01,
     "l2_norm_threshold": 0.01,
     "inf_norm_threshold": 0.01,

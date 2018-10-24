@@ -2360,6 +2360,88 @@ static Status TranslateQuantizeAndDequantizeV2Op(
   return Status::OK();
 }
 
+static Status TranslateQuantizedConv2DWithBiasAndReluAndRequantizeOp(const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input, ng_filter, ng_bias;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 1, &ng_filter));
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 2, &ng_bias));
+
+  std::vector<std::shared_ptr<ng::op::Constant>> static_inps(6);
+  for (int i = 0; i < static_inps.size(); i++){
+    std::vector<float> tmp_vect;
+    TF_RETURN_IF_ERROR(GetStaticInputVector(op, 3+i, static_input_map, &tmp_vect));
+    if (tmp_vect.size() != 1) {
+      return errors::InvalidArgument(
+          "QuantizedConv2DWithBiasAndReluAndRequantize Op: Input number ", (3+i), " must be scalar. Got a vector of size, ",
+          tmp_vect.size());
+    }
+    static_inps[i] = std::make_shared<ng::op::Constant>(ng::element::f32, ng::Shape({1}), tmp_vect);
+  }
+
+  std::vector<int32> tf_strides;
+  std::vector<int32> tf_dilations;
+  std::string tf_padding_type;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "strides", &tf_strides));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "dilations", &tf_dilations));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "padding", &tf_padding_type));
+
+  bool is_nhwc = true;  //TODO, is this right?
+
+  ng::Strides ng_strides(2);
+  ng::Strides ng_dilations(2);
+  ng::Strides ng_data_dilations({1,1}); //TODO, is this right?
+  ng::Shape ng_image_shape(2);
+  ng::Shape ng_kernel_shape(2);
+
+  BatchedOpParamToNGraph(is_nhwc, tf_strides, ng_strides);
+  BatchedOpParamToNGraph(is_nhwc, ng_input->get_shape(), ng_image_shape);
+  BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
+  BatchToNGraph(is_nhwc, ng_input);
+
+  auto& ng_filter_shape = ng_filter->get_shape();
+  ng_kernel_shape[0] = ng_filter_shape[0];
+  ng_kernel_shape[1] = ng_filter_shape[1];
+  Reshape<3, 2, 0, 1>(ng_filter);
+
+  ng::CoordinateDiff ng_padding_below{0, 0};
+  ng::CoordinateDiff ng_padding_above{0, 0};
+
+  Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
+                       ng_strides, ng_dilations, ng_padding_below,
+                       ng_padding_above);
+
+  std::shared_ptr<ng::Node> ng_quant_conv_bias =
+      ng::builder::ScaledQuantizedConvolutionBias(ng_input, ng_filter, ng_bias,
+                                            ng_strides, ng_dilations, ng_padding_below,
+                                            ng_padding_above, ng_data_dilations,
+                                            static_inps[0], static_inps[1],
+                                            static_inps[2], static_inps[3],
+                                            static_inps[4], static_inps[5],
+                                            true
+                                            );
+  cout << "YYYY get_output_element_type 1 ::" << ng_quant_conv_bias->get_output_element_type(0) << "\n";
+  BatchToTensorflow(is_nhwc, ng_quant_conv_bias);
+  /*
+  DataType out_type;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &out_type));
+  // TODO: check if backend supports qint when relu is true
+  if (out_type != DT_QUINT8){
+    ngraph::element::Type ng_out_type;
+    auto casted = make_shared<ng::op::Convert>(ng_quant_conv_bias, TFDataTypeToNGraphElementType(out_type, ng_out_type));
+    SaveNgOp(ng_op_map, op->name(), casted);
+  } else {
+    SaveNgOp(ng_op_map, op->name(), ng_quant_conv_bias);
+  }
+  */
+ cout << "YYYY get_output_element_type 1 ::" << ng_quant_conv_bias->get_output_element_type(0) << "\n";
+  SaveNgOp(ng_op_map, op->name(), ng_quant_conv_bias);
+  // TODO: check if these are the right min-max to forward out of this layer.
+  SaveNgOp(ng_op_map, op->name(), static_inps[0]);
+  SaveNgOp(ng_op_map, op->name(), static_inps[1]);
+  return Status::OK();
+}
+
 static Status TranslateQuantizedMaxPoolOp(const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input;
@@ -2411,6 +2493,7 @@ static Status TranslateQuantizedMaxPoolOp(const Node* op, const std::vector<cons
       make_shared<ng::op::GetOutputElement>(ng_quant_maxpool, 0);
   BatchToTensorflow(is_nhwc, ng_quant_maxpool_out0);
   SaveNgOp(ng_op_map, op->name(), ng_quant_maxpool_out0);
+  //TODO: revisit min-max. They might change if min-max is too close. For now just passing them along from in to out.
   SaveNgOp(ng_op_map, op->name(), ng_min);
   SaveNgOp(ng_op_map, op->name(), ng_max);
   return Status::OK();
@@ -3541,6 +3624,7 @@ const static std::map<
         {"PreventGradient", TranslateIdentityOp},
         {"Prod", TranslateProdOp},
         {"QuantizeAndDequantizeV2", TranslateQuantizeAndDequantizeV2Op},
+        {"QuantizedConv2DWithBiasAndReluAndRequantize", TranslateQuantizedConv2DWithBiasAndReluAndRequantizeOp},
         {"QuantizedMaxPool", TranslateQuantizedMaxPoolOp},
         {"QuantizeV2", TranslateQuantizeV2Op},
         {"RealDiv", TranslateBinaryOp<ngraph::op::Divide>},

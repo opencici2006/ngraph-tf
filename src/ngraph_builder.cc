@@ -1525,6 +1525,7 @@ static Status TranslateFloorModOp(
   return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_floormod);
 }
 
+/*
 static Status TranslateFusedBatchNormOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -1686,6 +1687,8 @@ static Status TranslateFusedBatchNormGradOp(
 
   return Status::OK();
 }
+*/
+// Commenting out batch norm due to API change
 
 static Status TranslateIdentityOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
@@ -3590,8 +3593,8 @@ const static std::map<
         {"Floor", TranslateUnaryOp<ngraph::op::Floor>},
         {"FloorDiv", TranslateFloorDivOp},
         {"FloorMod", TranslateFloorModOp},
-        {"FusedBatchNorm", TranslateFusedBatchNormOp},
-        {"FusedBatchNormGrad", TranslateFusedBatchNormGradOp},
+        //{"FusedBatchNorm", TranslateFusedBatchNormOp},
+        //{"FusedBatchNormGrad", TranslateFusedBatchNormGradOp},
         {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
         {"GreaterEqual", TranslateBinaryOp<ngraph::op::GreaterEq>},
         {"HorovodAllreduce", TranslateAllreduceOp},

@@ -294,8 +294,17 @@ class NGraphEncapsulateOp : public OpKernel {
     // Get the backend.
     std::shared_ptr<ng::runtime::Backend> backend;
     bool is_cpu_backend;
-    std::tie(backend, is_cpu_backend) =
-        BackendManager::Instance()->GetBackend();
+    try {
+      std::tie(backend, is_cpu_backend) =
+          BackendManager::Instance()->GetBackend();
+    } catch (const std::exception& e) {
+      OP_REQUIRES(ctx, false,
+                  errors::Internal("Failed to initialize nGraph backend: ",
+                                   e.what(), "\n"));
+    } catch (...) {
+      OP_REQUIRES(ctx, false,
+                  errors::Internal("Failed to initialize nGraph backend\n"));
+    }
 
     // Allocate tensors for arguments.
     vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;

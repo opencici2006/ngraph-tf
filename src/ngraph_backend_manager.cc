@@ -43,6 +43,10 @@ BackendManager::GetBackend() {
     LoadBackendLocked(config);
   }
 
+  // nGraph backend configuration strings start with the library name,
+  // optionally followed by a ':' and a comma-separated sequence of
+  // attributes.  So to discover whether we're using the CPU backend,
+  // we match the config up to the first ':' (if any).
   auto colon = config_.find(':');
   bool is_cpu;
   if (colon == std::string::npos) {

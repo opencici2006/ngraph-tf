@@ -30,6 +30,8 @@ namespace ngraph_bridge {
 class BackendManager {
  public:
   // Returns the global BackendManager instance.
+  //
+  // (Note that in testing scenarios, there may be additional instances.)
   static BackendManager* Instance();
 
   // Sets the manager's current backend.

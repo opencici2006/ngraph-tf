@@ -420,9 +420,9 @@ class NGraphEncapsulateOp : public OpKernel {
           ctx, TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
                                              &expected_elem_type));
       //ctx->expected_output_dtype(i)
-      cout << "XXXXX: i: " << i << "\n";
-      cout << "expected_elem_type (TF expects): " << expected_elem_type << "\n";
-      cout << "ng_element_type (out type deduced by ng): " << ng_element_type << "\n";
+      //cout << "XXXXX: i: " << i << "\n";
+      //cout << "expected_elem_type (TF expects): " << expected_elem_type << "\n";
+      //cout << "ng_element_type (out type deduced by ng): " << ng_element_type << "\n";
       // inp is quint8, filt is qint8, out is quint8
       //expected_elem_type: element::Type{8, 0, 0, 1, "uint8_t"}
       //ng_element_type: element::Type{8, 0, 1, 1, "int8_t"}

@@ -2439,9 +2439,9 @@ static Status TranslateQuantizedConv2DWithBiasAndReluAndRequantizeOp(const Node*
   */
  cout << "YYYY get_output_element_type 1 ::" << ng_quant_conv_bias->get_output_element_type(0) << "\n";
   SaveNgOp(ng_op_map, op->name(), ng_quant_conv_bias);
-  // TODO: check if these are the right min-max to forward out of this layer.
-  SaveNgOp(ng_op_map, op->name(), static_inps[0]);
-  SaveNgOp(ng_op_map, op->name(), static_inps[1]);
+  // TODO: check if these are the right min-max to forward out of this layer. checked.
+  SaveNgOp(ng_op_map, op->name(), static_inps[4]);
+  SaveNgOp(ng_op_map, op->name(), static_inps[5]);
   return Status::OK();
 }
 
